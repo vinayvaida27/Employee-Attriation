@@ -43,7 +43,7 @@ The dataset used in this project includes various employee attributes such as ag
 
 1. Clone this repository:
     ```bash
-    git clone https://github.com/yourusername/Employee-Attrition.git
+    git clone https://github.com/vinayvaida27/BreadcrumbsPredicting-Employee-Attrition-with-Machine-Learning-and-Analytics.Rmd.git
     ```
 
 2. Install the necessary dependencies:
@@ -53,9 +53,9 @@ The dataset used in this project includes various employee attributes such as ag
 
 ## Usage
 
-To run the project in RStudio, open the `employee_attrition.R` script and run the code:
+To run the project in RStudio, open the `Employee attriration 01052024.Rmd` script and run the code:
 ```bash
-source("employee_attrition.R")
+source("Employee attriration 01052024.Rmd")
 ```
 
 ## Results
