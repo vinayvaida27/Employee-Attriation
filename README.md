@@ -60,6 +60,9 @@ source("employee_attrition.R")
 
 ## Results
 The Random Forest (With SMOTE) model was the most effective in predicting employee attrition, with a high accuracy and strong performance across both "stay" and "leave" classes.
+Confusion Matrix of Random Forest with SMOTE
+![image](https://github.com/user-attachments/assets/32dc87c4-2b88-4b6f-be57-00c73a168c33)
+
 
 ## Results
 The project demonstrates the ability to predict employee attrition with high accuracy, offering valuable insights for HR departments to take preemptive actions.
