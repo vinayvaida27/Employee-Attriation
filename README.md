@@ -31,6 +31,7 @@ The dataset used in this project includes various employee attributes such as ag
 - caret
 
 ## Before smote and After smote Data distribution
+-SMOTE (Synthetic Minority Over-sampling Technique) generates synthetic samples for the minority class to balance imbalanced datasets. It improves model performance by preventing bias toward the majority class. Before SMOTE, the data shows a skewed distribution, and after SMOTE, the classes are more evenly distributed.
 ![image](https://github.com/user-attachments/assets/6d9bfeb3-bb82-4d2f-bd72-c0f078a32b7e)
 ![image](https://github.com/user-attachments/assets/fb12f6da-90b1-45e7-8cb9-b286d6fc67e5)
 
