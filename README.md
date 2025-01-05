@@ -45,6 +45,9 @@ The dataset used in this project includes various employee attributes such as ag
 - The best performing model for predicting employee attrition was **Random Forest (With SMOTE)**, achieving an accuracy of 89.25% and an AUC of 0.87. This model effectively handles class imbalance and provides excellent recall and precision for both "stay" and "leave" classes, making it the best candidate for real-world deployment.
 
 
+## Presentation
+- ![image](https://github.com/user-attachments/assets/ac4f4e42-d291-4964-b550-26bcde47f1a5)
+
 ## Installation
 
 1. Clone this repository:
