@@ -1,0 +1,1577 @@
+---
+title: "Decoding Workforce Trends: Predicting Employee Attrition with Machine Learning and Analytics"
+author: "Vinay Vaida"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  word_document: default
+  pdf_document: default
+always_allow_html: true
+---
+
+
+```{r mychunk1, warning=FALSE, message=FALSE}
+
+# ============================================================
+#                       INTRODUCTION
+# ============================================================
+
+# This project aims to perform Exploratory Data Analysis (EDA) 
+# and develop a predictive model to uncover key factors driving 
+# employee attrition. The goal is to help organizations identify 
+# patterns and enhance employee retention strategies through data-driven insights.
+
+# ============================================================
+#                         DATASET
+# ============================================================
+# The dataset contains 35 variables capturing employee demographics, 
+# job satisfaction, performance metrics, and job-related information. 
+# The primary target variable, 'Attrition', indicates whether an employee 
+# has left the company (Yes or No).
+#
+# By analyzing these factors, the project seeks to reveal trends 
+# and predictors of employee turnover.
+
+
+# ============================================================
+#                      KEY VARIABLES
+# ============================================================
+# The dataset includes several critical variables that provide insights 
+# into employee demographics, job roles, and compensation. Key variables are:
+# 
+# - Age:               Employee age (18 to 60 years)
+# - Attrition:         Indicates if the employee left the company ('Yes' or 'No')
+# - Department:        The department where the employee works
+# - JobRole:           Specific role/title within the company
+# - MonthlyIncome:     Employee salary or monthly earnings
+# - OverTime:          Whether the employee works overtime ('Yes' or 'No')
+# - YearsAtCompany:    Number of years the employee has been with the company
+
+# ============================================================
+#                     ANALYSIS TASKS
+# ============================================================
+# The project will focus on the following key analytical tasks to understand 
+# factors contributing to employee attrition:
+# 
+# 1. Identify Key Factors:
+#    - Pinpoint employee characteristics that significantly impact attrition.
+#
+# 2. Compare Attrition Rates:
+#    - Examine differences in attrition across departments and job roles.
+#
+# 3. Satisfaction Analysis:
+#    - Analyze how job and environment satisfaction relate to attrition.
+#
+# 4. Financial Impact:
+#    - Explore the relationship between income, salary hikes, stock options, and attrition.
+#
+# 5. Work-Life Balance:
+#    - Investigate the influence of work-life balance and overtime on attrition rates.
+#
+# 6. Data Quality:
+#    - Address and manage missing data to ensure the accuracy of analysis.
+#
+# 7. Tenure Trends:
+#    - Examine how tenure and career progression affect attrition patterns.
+#
+# These insights will help drive strategic decisions and improve employee retention.
+```
+
+
+
+ 
+```{r mychunk2, warning=FALSE, message=FALSE}
+# ============================================================
+#               INSTALL AND LOAD REQUIRED LIBRARIES
+# ============================================================
+# Define the required libraries
+required_libraries <- c(
+  "dplyr", "tidyr", "forcats", "readr", "ggplot2", 
+  "gridExtra", "plotly", "reshape2", "preprocessCore", 
+  "caret", "DMwR2", "ROSE", "randomForest", 
+  "xgboost", "e1071", "pROC", "smotefamily"
+)
+
+# Function to install and load libraries
+install_and_load <- function(libraries) {
+  for (lib in libraries) {
+    # Check if the package is already installed
+    if (!requireNamespace(lib, quietly = TRUE)) {
+      message(paste("Installing", lib, "..."))
+      install.packages(lib, dependencies = TRUE)
+    }
+    # Load the package
+    library(lib, character.only = TRUE)
+  }
+}
+
+# Install and load all required libraries
+install_and_load(required_libraries)
+```
+
+
+```{r mychunk3, warning=FALSE, message=FALSE}
+#Calling Dataset
+file_path <- "C:/Users/vinay/OneDrive/Desktop/Applied Statistics using R/Employee Atrriration/Employee Attrition.csv"
+df <- read_csv(file_path)
+head(df)
+```
+Find Null Values in dataset for cleaning
+```{r mychunk4, warning=FALSE, message=FALSE}
+colSums(is.na(df))
+```
+There are no null value
+
+
+Descriptive Statistics
+```{r mychunk5, warning=FALSE, message=FALSE}
+summary(df)
+```
+
+
+```{r mychunk6, warning=FALSE, message=FALSE}
+
+# ============================================================
+#                  DATASET SUMMARY INSIGHTS
+# ============================================================
+
+# 1. EMPLOYEE DEMOGRAPHICS:
+# ------------------------------------------------------------
+# - The dataset consists of 1,470 employee records.
+# - Employee ages range from 18 to 60 years.
+# - The average employee age is approximately 37 years, 
+#   reflecting a broad and diverse age distribution.
+
+# 2. COMPENSATION AND BENEFITS:
+# ------------------------------------------------------------
+# - Monthly income ranges from $1,009 to $19,999.
+# - The average monthly income is around $6,503.
+# - A notable percentage of employees work overtime, 
+#   suggesting a significant workload beyond regular hours.
+
+# 3. TENURE AND JOB SATISFACTION:
+# ------------------------------------------------------------
+# - The average employee tenure is approximately 7 years, 
+#   indicating considerable employee retention and loyalty.
+# - Job satisfaction scores average 2.73 out of 4. 
+#   This points to potential areas for improving 
+#   employee engagement and satisfaction.
+```
+
+```{r mychunk7, warning=FALSE, message=FALSE}
+# Ensure 'Attrition' is a factor (categorical variable)
+df$Attrition <- as.factor(df$Attrition)
+
+# Define a color palette (optional)
+palette <- c("Yes" = "blue", "No" = "red")
+
+# Create a bar plot for `Attrition`
+ggplot(df, aes(x = Attrition, fill = Attrition)) +
+  geom_bar() +
+  scale_fill_manual(values = palette) +
+  labs(title = "Attrition Distribution", x = "Attrition", y = "Count") +
+  theme_minimal()
+```
+
+
+```{r mychunk8, warning=FALSE, message=FALSE}
+# ============================================================
+#       Convert Attrition to binary numeric
+# ===========================================================
+df$Attrition <- ifelse(df$Attrition == "Yes", 1, 0)
+
+
+# Count the occurrences of each category in the Attrition column
+attrition_counts <- table(df$Attrition)
+
+# Convert to a data frame for easier plotting
+attrition_df <- data.frame(
+  Attrition = names(attrition_counts),
+  Count = as.numeric(attrition_counts)
+)
+
+# Create the pie chart
+ggplot(attrition_df, aes(x = "", y = Count, fill = Attrition)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y", start = pi / 2) +
+  scale_fill_manual(values = c("Red", "Blue")) +
+  labs(title = "Employee Attrition Distribution") +
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+```{r mychunk9, warning=FALSE, message=FALSE}
+# ============================================================
+#       SELECT AND PRINT CATEGORICAL AND NUMERIC COLUMNS
+# ===========================================================
+# Select columns of type "character" (categorical)
+cat_cols <- colnames(df)[sapply(df, is.character)]
+
+# Select numeric columns
+num_cols <- df %>%
+  select(where(is.numeric)) %>%
+  colnames()
+
+# Print the selected categorical and numeric columns
+cat("Categorical Columns:\n")
+print(cat_cols)
+
+cat("\nNumeric Columns:\n")
+print(num_cols)
+```
+
+```{r mychunk10, warning=FALSE, message=FALSE}
+# ============================================================
+#         COMPUTE AND PLOT CORRELATION WITH ATTRITION
+# ============================================================
+
+# Initialize vectors to store feature names and correlation values
+key <- c()   # Vector to store feature names
+vals <- c()  # Vector to store correlation values
+
+# Compute correlations for each numeric column except "Attrition"
+for (col in num_cols) {
+  if (col == "Attrition") {
+    next  # Skip the target variable itself
+  }
+  
+  # Calculate correlation between Attrition and each numeric feature
+  corr_value <- cor(df$Attrition, df[[col]], use = "complete.obs")
+  
+  # Store feature name and absolute correlation value
+  key <- c(key, col)
+  vals <- c(vals, abs(corr_value))
+  
+  # Print correlation value for each feature
+  cat(col, ": ", corr_value, "\n")
+}
+
+# Create a data frame to visualize the correlation results
+correlation_df <- data.frame(Feature = key, Correlation = vals)
+
+# Print correlation data frame for review
+print(correlation_df)
+```
+```{r mychunk11, warning=FALSE, message=FALSE}
+ggplot(correlation_df, aes(x = reorder(Feature, -Correlation), y = Correlation)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  theme_minimal() +
+  labs(title = "Correlation of Features with Attrition",
+       x = "Features",
+       y = "Absolute Correlation") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+
+
+```{r mychunk12, warning=FALSE, message=FALSE}
+# ============================================================
+#      VISUALIZATION OF NUMERIC COLUMNS: HISTOGRAM, BOXPLOT, KDE
+# ============================================================
+
+# Set plot dimensions for HTML output
+options(repr.plot.width = 15, repr.plot.height = 5)  # Adjust width and height
+
+# Loop through each numeric column to create visualizations
+for (col in num_cols) {
+  
+  # ------------------------------------------------------------
+  # Histogram - Displays frequency distribution of the numeric feature
+  p1 <- ggplot(df, aes_string(x = col)) +
+    geom_histogram(bins = 30, fill = "skyblue", color = "black", alpha = 0.7) +
+    labs(title = paste("Histogram of", col), x = col, y = "Frequency") +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5, size = 16))
+  
+  # ------------------------------------------------------------
+  # Boxplot - Highlights the spread, median, and outliers of the feature
+  p2 <- ggplot(df, aes_string(y = col)) +
+    geom_boxplot(fill = "skyblue", color = "black", width = 0.5) +
+    labs(title = paste("Boxplot of", col), x = "", y = col) +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5, size = 16))
+  
+  # ------------------------------------------------------------
+  # KDE (Density Plot) - Estimates the probability density of the feature
+  p3 <- ggplot(df, aes_string(x = col)) +
+    geom_density(fill = "skyblue", color = "black", alpha = 0.7) +
+    labs(title = paste("KDE of", col), x = col, y = "Density") +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5, size = 16))
+  
+  # ------------------------------------------------------------
+  # Arrange all three plots in a single row for comparison
+  grid.arrange(p1, p2, p3, ncol = 3)
+  
+  # Print progress to the console
+  cat("Plots for", col, "completed.\n")
+}
+
+```
+
+
+
+```{r mychunk13, warning=FALSE, message=FALSE}
+# ============================================================
+#           VISUALIZATION OF ATTRITION FACTORS (COLORFUL)
+# ============================================================
+
+# Set global plot options for better HTML display
+options(repr.plot.width = 14, repr.plot.height = 6)
+
+# Define a custom color palette for differentiation
+color_palette <- c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", 
+                   "#9467bd", "#8c564b", "#e377c2", "#7f7f7f")
+
+# ------------------------------------------------------------
+# 1. Histogram: Attrition by Age
+ggplot(df, aes(x = Age, fill = Attrition)) +
+  geom_histogram(position = "dodge", bins = 20, alpha = 0.9) +
+  scale_fill_manual(values = c("#3498db", "#e74c3c")) +  # Blue and Red
+  labs(
+    title = "Attrition by Age",
+    x = "Age",
+    y = "Count",
+    fill = "Attrition"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+    legend.position = "top"
+  )
+
+# ------------------------------------------------------------
+# 2. Sunburst Chart: Gender Distribution by Attrition
+sunburst_data <- df %>%
+  count(Gender, Attrition) %>%
+  rename(labels = Gender, parents = Attrition, values = n)
+
+plot_ly(
+  sunburst_data,
+  labels = ~labels,
+  parents = ~parents,
+  values = ~values,
+  type = 'sunburst',
+  branchvalues = 'total',
+  marker = list(colors = color_palette)  # Apply custom palette
+) %>%
+  layout(
+    title = "Gender Distribution by Attrition",
+    title_x = 0.5
+  )
+
+# ------------------------------------------------------------
+# 3. Histogram: Total Working Years by Attrition
+ggplot(df, aes(x = TotalWorkingYears, fill = Attrition)) +
+  geom_histogram(position = "stack", bins = 15, alpha = 0.9) +
+  scale_fill_manual(values = c("#2ecc71", "#e67e22")) +  # Green and Orange
+  labs(
+    title = "Total Working Years by Attrition",
+    x = "Total Working Years",
+    y = "Count",
+    fill = "Attrition"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+    legend.position = "top"
+  )
+
+# ------------------------------------------------------------
+# 4. Count Plot: Attrition by Job Level
+ggplot(df, aes(x = factor(JobLevel), fill = Attrition)) +
+  geom_bar(position = "dodge", alpha = 0.9) +
+  scale_fill_manual(values = c("#9b59b6", "#f39c12")) +  # Purple and Yellow
+  labs(
+    title = "Attrition by Job Level",
+    x = "Job Level",
+    y = "Count",
+    fill = "Attrition"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+    legend.position = "top"
+  )
+
+# ------------------------------------------------------------
+# 5. Count Plot: Attrition by Department
+ggplot(df, aes(x = Department, fill = Attrition)) +
+  geom_bar(position = "dodge", alpha = 0.9) +
+  scale_fill_manual(values = c("#1abc9c", "#c0392b")) +  # Teal and Dark Red
+  labs(
+    title = "Attrition by Department",
+    x = "Department",
+    y = "Count",
+    fill = "Attrition"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+    legend.position = "top"
+  )
+
+# ------------------------------------------------------------
+# 6. Histogram: Monthly Income by Attrition
+ggplot(df, aes(x = MonthlyIncome, fill = Attrition)) +
+  geom_histogram(position = "stack", bins = 30, alpha = 0.9) +
+  scale_fill_manual(values = c("#e84393", "#16a085")) +  # Pink and Green
+  labs(
+    title = "Monthly Income by Attrition",
+    x = "Monthly Income",
+    y = "Count",
+    fill = "Attrition"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+    legend.position = "top"
+  )
+
+```
+```{r mychunk14, warning=FALSE, message=FALSE}
+# ============================================================
+#                           KEY INSIGHTS
+# ============================================================
+
+# 1. ATTRITION PATTERNS:
+# ------------------------------------------------------------
+# - Higher attrition is observed in specific roles and departments.
+# - This highlights the need for targeted retention strategies.
+# - Demographic factors, such as age and marital status, 
+#   play a significant role in influencing attrition rates.
+
+# 2. IMPACT OF SATISFACTION LEVELS:
+# ------------------------------------------------------------
+# - Low job satisfaction and poor work-life balance are 
+#   strongly associated with increased attrition.
+# - Environmental dissatisfaction further amplifies employee turnover.
+
+# 3. EFFECT OF COMPENSATION:
+# ------------------------------------------------------------
+# - Employees with lower monthly incomes and fewer financial 
+#   incentives, such as stock options, show higher attrition rates.
+# - Competitive compensation packages can mitigate turnover risk.
+
+# 4. CAREER PROGRESSION:
+# ------------------------------------------------------------
+# - Employees who experience long tenure without promotions 
+#   are more likely to leave the organization.
+# - This emphasizes the importance of offering career 
+#   development and advancement opportunities.
+
+# 5. WORKLOAD AND OVERTIME:
+# ------------------------------------------------------------
+# - Heavy workloads and excessive overtime hours correlate 
+#   with higher attrition, particularly when work-life balance is poor.
+# - Managing workload can play a crucial role in retention efforts.
+
+# 6. TENURE TRENDS:
+# ------------------------------------------------------------
+# - Employees in their early years at the company show 
+#   higher attrition rates.
+# - Implementing retention programs during the initial years 
+#   can help reduce turnover.
+
+# ============================================================
+#                            SUMMARY
+# ============================================================
+
+# - Research shows that predictive modeling and AI are effective 
+#   in addressing employee attrition.
+# - Data-driven insights enable organizations to craft precise 
+#   HR strategies aimed at retaining valuable talent.
+# - By leveraging analytics, companies can proactively mitigate 
+#   the risk of employee turnover and foster long-term engagement.
+
+```
+
+
+
+
+```{r mychunk15, warning=FALSE, message=FALSE}
+# ============================================================
+#                   DATA PREPROCESSING: OUTLIER DETECTION
+# ============================================================
+
+# Step A: Initialize a list to store features with outliers
+features_with_outliers <- list()
+
+# Step B: Loop through numeric columns to detect and calculate outliers
+for (feature in num_cols) {
+  
+  # ------------------------------------------------------------
+  # Calculate the 25th and 75th percentiles (Q1 and Q3)
+  percentile25 <- quantile(df[[feature]], 0.25, na.rm = TRUE)
+  percentile75 <- quantile(df[[feature]], 0.75, na.rm = TRUE)
+  
+  # Calculate the Interquartile Range (IQR)
+  iqr <- percentile75 - percentile25
+  
+  # Define upper and lower limits for outliers
+  upper_limit <- percentile75 + 1.5 * iqr
+  lower_limit <- percentile25 - 1.5 * iqr
+  
+  # Identify outliers outside the IQR range
+  outliers <- df[df[[feature]] > upper_limit | df[[feature]] < lower_limit, ]
+  proportion_of_outliers <- nrow(outliers) / nrow(df) * 100
+  
+  # ------------------------------------------------------------
+  # Print details and store features with detected outliers
+  if (nrow(outliers) > 0) {
+    features_with_outliers <- c(features_with_outliers, feature)
+    
+    # Print outlier details in a structured format
+    cat("--------------------------------------------------\n")
+    cat(" Feature:", feature, "\n")
+    cat(" Number of Outliers:", nrow(outliers), "\n")
+    cat(" Proportion of Outliers:", round(proportion_of_outliers, 2), "%\n")
+    cat("--------------------------------------------------\n\n")
+  }
+}
+
+# ============================================================
+#                  OUTLIER DETECTION COMPLETED
+# ============================================================
+
+# Print summary of features with outliers
+if (length(features_with_outliers) > 0) {
+  cat("Features with detected outliers:\n")
+  print(features_with_outliers)
+} else {
+  cat("No significant outliers detected.\n")
+}
+
+```
+
+
+```{r mychunk16, warning=FALSE, message=FALSE}
+
+
+# ============================================================
+#                  Step C SKEWNESS DETECTION
+# ============================================================
+
+# Initialize storage for skewed features
+skewed_features <- list()
+skewed_columns <- c()
+
+# Loop through numeric columns to calculate skewness
+for (feature in num_cols) {
+  
+  # Ensure the column is numeric (sanity check)
+  if (is.numeric(df[[feature]])) {
+    
+    # Calculate skewness
+    feature_skewness <- skewness(df[[feature]], na.rm = TRUE)
+    skewed_features[[feature]] <- feature_skewness
+    
+    # Print skewness for right-skewed features
+    if (!is.na(feature_skewness) && feature_skewness > 0.5) {
+      cat("--------------------------------------------------\n")
+      cat(" Feature:", feature, "\n")
+      cat(" Skewness Value:", round(feature_skewness, 2), "\n")
+      cat(" Status: Right-Skewed\n")
+      cat("--------------------------------------------------\n\n")
+      
+      # Store the column for further transformations if needed
+      skewed_columns <- c(skewed_columns, feature)
+      
+    }
+  } else {
+    # Print message for non-numeric columns
+    cat("Skipping non-numeric column:", feature, "\n")
+  }
+}
+
+
+# Summary of skewed features
+if (length(skewed_columns) > 0) {
+  cat("Summary of Right-Skewed Features:\n")
+  print(skewed_columns)
+} else {
+  cat("No significant skewness detected.\n")
+}
+
+
+```
+
+
+```{r mychunk17, warning=FALSE, message=FALSE}
+# ============================================================
+#  STEP D: DROP HIGHLY CORRELATED COLUMNS AND ENCODE CATEGORICAL VARIABLES
+# ============================================================
+
+# ------------------------------------------------------------
+# STEP 1: Remove Highly Correlated or Irrelevant Columns
+# ------------------------------------------------------------
+df <- df %>%
+  select(-c(
+    TotalWorkingYears,       # Correlated with YearsAtCompany
+    YearsAtCompany,          # Correlated with YearsInCurrentRole
+    YearsInCurrentRole,      
+    YearsSinceLastPromotion, # Highly correlated with career progression features
+    JobSatisfaction,         # Satisfaction variables may add redundancy
+    EnvironmentSatisfaction,
+    RelationshipSatisfaction,
+    WorkLifeBalance,         # Retained through other features
+    EmployeeCount,           # Constant column
+    Over18,                  # Not useful for analysis
+    StandardHours            # Constant value across rows
+  ))
+
+# ------------------------------------------------------------
+# STEP 2: Encode Categorical Variables
+# ------------------------------------------------------------
+df <- df %>%
+  mutate(
+    # Convert all character columns (except Attrition) to numeric factors
+    across(
+      .cols = where(is.character) & !matches("Attrition"),
+      .fns  = ~ as.numeric(as.factor(.))
+    ),
+    
+    # Ensure 'Attrition' remains a factor for classification
+    Attrition = factor(Attrition)
+  ) %>%
+  na.omit()  # Remove rows with missing values after encoding
+
+# Store a copy of the processed dataset for potential SMOTE application
+df_smote <- df
+
+# ------------------------------------------------------------
+# STEP 3: Split Dataset into Training and Testing Sets
+# ------------------------------------------------------------
+set.seed(42)  # Ensure reproducibility of random sampling
+train_index <- createDataPartition(df$Attrition, p = 0.8, list = FALSE)
+
+# Subset the dataset into 80% training and 20% testing data
+train_data <- df[train_index, ]
+test_data  <- df[-train_index, ]
+
+
+
+```
+
+```{r mychunk18, warning=FALSE, message=FALSE}
+# ============================================================
+#                LOGISTIC REGRESSION MODEL
+# ============================================================
+
+# ------------------------------------------------------------
+# STEP 1: Train the Logistic Regression Model
+# ------------------------------------------------------------
+logistic_model <- glm(
+  Attrition ~ .,                  # Use all features to predict Attrition
+  data = train_data,              # Training dataset
+  family = binomial               # Specify binomial for logistic regression
+)
+
+# ------------------------------------------------------------
+# STEP 2: Summarize the Model to Review Coefficients and Performance
+# ------------------------------------------------------------
+summary(logistic_model)  # Display model coefficients, p-values, and significance levels
+
+# ============================================================
+#            PREDICTION AND MODEL EVALUATION
+# ============================================================
+
+# ------------------------------------------------------------
+# STEP 1: Make Predictions on Test Data
+# ------------------------------------------------------------
+test_predictions <- predict(
+  logistic_model,               # Trained logistic regression model
+  newdata = test_data,          # Test dataset
+  type = "response"             # Return predicted probabilities
+)
+
+# ------------------------------------------------------------
+# STEP 2: Convert Probabilities to Binary Outcomes
+# ------------------------------------------------------------
+threshold <- 0.5  # Set classification threshold at 50%
+test_predictions_binary <- ifelse(test_predictions > threshold, 1, 0)
+
+# ------------------------------------------------------------
+# STEP 3: Evaluate Model Performance with Confusion Matrix
+# ------------------------------------------------------------
+confusion_matrix <- caret::confusionMatrix(
+  factor(test_predictions_binary, levels = c(0, 1)),  # Predicted values
+  test_data$Attrition                                 # Actual values from test data
+)
+
+# Display the confusion matrix and performance metrics
+print(confusion_matrix)
+
+
+# ============================================================
+#              CONFUSION MATRIX HEATMAP VISUALIZATION
+# ============================================================
+
+# ------------------------------------------------------------
+# STEP 1: Prepare Confusion Matrix as Table
+# ------------------------------------------------------------
+cm_table <- table(
+  Predicted = test_predictions_binary,  # Predicted values from the model
+  Actual = test_data$Attrition          # Actual class labels from test data
+)
+
+# Convert confusion matrix to a data frame for ggplot2 visualization
+cm_df <- as.data.frame(cm_table)
+colnames(cm_df) <- c("Predicted", "Actual", "Count")  # Rename columns for clarity
+
+# ------------------------------------------------------------
+# STEP 2:  Visualize as Heatmap
+# ------------------------------------------------------------
+
+ggplot(cm_df, aes(x = Actual, y = Predicted, fill = Count)) +
+  geom_tile(color = "white") +  # Tile grid with white grid lines
+  geom_text(aes(label = Count), color = "white", size = 6) +  # Overlay counts
+  scale_fill_gradient(low = "#6baed6", high = "#08306b") +  # Gradient from light to dark blue
+  labs(
+    title = "Confusion Matrix Heatmap",
+    x = "Actual Class",
+    y = "Predicted Class",
+    fill = "Count"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),  # Centered and bold title
+    axis.text = element_text(size = 14),                               # Axis labels
+    axis.title = element_text(size = 16),                              # Axis titles
+    legend.title = element_text(size = 14),                            # Legend title size
+    legend.text = element_text(size = 12)                              # Legend text size
+  )
+
+
+# ============================================================
+#               ROC CURVE AND AUC CALCULATION
+# ============================================================
+
+# STEP 1: Generate Predicted Probabilities
+test_probabilities <- predict(
+  logistic_model,
+  newdata = test_data,
+  type = "response"
+)
+
+# STEP 2: Create the ROC Curve and Calculate AUC
+roc_curve <- roc(
+  response = test_data$Attrition,
+  predictor = test_probabilities
+)
+
+auc_value <- auc(roc_curve)
+
+# STEP 3: Plot the Enhanced ROC Curve
+plot(
+  roc_curve,
+  main = "ROC Curve for Logistic Regression",
+  col = "#2c7bb6",  # A richer blue for the curve
+  lwd = 3,          # Thicker line for better visibility
+  cex.main = 1.5,   # Larger main title
+  xlab = "1 - Specificity",
+  ylab = "Sensitivity",
+  cex.lab = 1.3,    # Larger axis labels
+  cex.axis = 1.2    # Larger axis text
+)
+
+# Add diagonal reference line (random classifier)
+abline(a = 0, b = 1, col = "grey", lty = 2, lwd = 2)
+
+# Add AUC annotation in a clean and prominent way
+text(
+  x = 0.4, y = 0.2, 
+  labels = paste("AUC =", round(auc_value, 2)),
+  col = "#d73027",  # Red for emphasis
+  cex = 2,          # Larger text size
+  font = 2          # Bold text
+)
+
+# Add grid for better readability
+grid(col = "lightgray", lty = "dotted", lwd = 0.8)
+
+```
+```{r mychunk19, warning=FALSE, message=FALSE}
+
+# ============================================================
+#            LOGISTIC REGRESSION MODEL SUMMARY
+# ============================================================
+
+# MODEL PERFORMANCE:
+# ------------------------------------------------------------
+# - **Accuracy**: 84.98% – The model correctly predicted attrition for 84.98% of employees.
+# - **Sensitivity (Recall)**: 89.43% – The model effectively identifies employees who stay (Class 0).
+# - **Specificity**: 61.7% – The model is less effective at detecting employees who leave (Class 1).
+# - **AUC (Area Under the Curve)**: 0.83 – A strong indicator that the model distinguishes well between attrition and non-attrition cases.
+# - **Kappa**: 0.48 – Moderate agreement between predictions and actual values, indicating decent model reliability.
+
+# - **Confusion Matrix Insights**:
+#   - 220 true negatives (correctly predicted as staying)
+#   - 29 true positives (correctly predicted as leaving)
+#   - 18 false negatives (incorrectly predicted as staying)
+#   - 26 false positives (incorrectly predicted as leaving)
+
+# - The model leans towards predicting employees will stay, with some misclassification of those who leave.
+
+# SIGNIFICANT FACTORS INFLUENCING ATTRITION:
+# ------------------------------------------------------------
+# - **OverTime**: (p < 0.001, Estimate = 1.467) – Employees working overtime are significantly more likely to leave.
+# - **Age**: (p < 0.001, Estimate = -0.0448) – Older employees are less likely to leave, suggesting younger employees have higher attrition risk.
+# - **Job Involvement**: (p < 0.001, Estimate = -0.5018) – Lower job involvement increases attrition risk.
+# - **NumCompaniesWorked**: (p < 0.001, Estimate = 0.1317) – Employees who have worked for multiple companies show a higher risk of attrition.
+# - **Distance From Home**: (p = 0.002, Estimate = 0.033) – Employees living further from the workplace are more likely to leave.
+# - **Department**: (p = 0.002, Estimate = 0.782) – Employees in certain departments are at higher risk of leaving.
+# - **Marital Status**: (p = 0.01, Estimate = 0.432) – Marital status also correlates with attrition, possibly reflecting external responsibilities.
+# - **Years With Current Manager**: (p = 0.0079, Estimate = -0.0824) – Longer tenure with the current manager reduces attrition risk.
+
+# LESS INFLUENTIAL FACTORS (p > 0.05):
+# ------------------------------------------------------------
+# - Education, Performance Rating, Monthly Income, and Stock Options do not show statistically significant influence on attrition.
+
+# SUMMARY:
+# ------------------------------------------------------------
+# - The model highlights that work-life balance, job involvement, and external factors (like distance from home and overtime) play crucial roles in attrition.
+# - The model performs well overall but may need improvement in detecting employees who leave (specificity).
+# - Recommendations:
+#   - Address overtime issues by promoting better work-life balance.
+#   - Engage younger employees and improve job involvement to reduce attrition.
+#   - Monitor departments with higher attrition rates for targeted interventions.
+
+```
+
+
+
+
+```{r mychunk20, warning=FALSE, message=FALSE}
+# ============================================================
+#               RANDOM FOREST MODEL TRAINING
+# ============================================================
+
+# ------------------------------------------------------------
+# STEP 1: Ensure Class Levels Are Properly Formatted
+# ------------------------------------------------------------
+# Assuming 'Attrition' is the factor variable
+levels(train_data$Attrition) <- make.names(levels(train_data$Attrition), unique = TRUE)
+levels(test_data$Attrition) <- make.names(levels(test_data$Attrition), unique = TRUE)
+
+# ------------------------------------------------------------
+# STEP 2: Define Cross-Validation and Control Parameters
+# ------------------------------------------------------------
+fitControl <- trainControl(
+  method = "cv",
+  number = 10,
+  savePredictions = "final",
+  classProbs = TRUE,  # Since we are now sure all class names are valid
+  summaryFunction = twoClassSummary
+)
+
+# ------------------------------------------------------------
+# STEP 3: Train the Random Forest Model
+# ------------------------------------------------------------
+set.seed(123)  # For reproducibility
+rf_model <- train(
+  Attrition ~ .,
+  data = train_data,
+  method = "rf",
+  trControl = fitControl,
+  metric = "Accuracy",
+  importance = TRUE
+)
+print(rf_model)
+
+# Display model summary and performance metrics
+print(rf_model)
+
+
+# ============================================================
+#               PREDICTION AND ACCURACY EVALUATION
+# ============================================================
+
+# Predict on the test data using the trained random forest model
+predictions <- predict(rf_model, newdata = test_data)
+
+# Calculating accuracy
+conf_mat <- confusionMatrix(predictions, test_data$Attrition)
+
+# ============================================================
+#               CONFUSION MATRIX VISUALIZATION
+# ============================================================
+
+# Convert confusion matrix to dataframe for visualization
+conf_mat_df <- as.data.frame(conf_mat$table)
+
+# Plotting the confusion matrix as a heatmap
+ggplot(data = conf_mat_df, aes(x = Reference, y = Prediction, fill = Freq)) +
+  geom_tile(color = "white") +  # Add white grid lines
+  geom_text(aes(label = Freq), vjust = 1.5, color = "black", size = 5) +  # Overlay counts
+  scale_fill_gradient(low = "white", high = "#1c61b6") +  # Gradient color
+  labs(
+    title = "Confusion Matrix Heatmap",
+    x = "Actual Class",
+    y = "Predicted Class"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),  # Title formatting
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 16)
+  )
+
+
+# ============================================================
+#               ROC CURVE AND AUC VISUALIZATION
+# ============================================================
+
+# Predict class probabilities for the test data
+probs <- predict(
+  rf_model,
+  newdata = test_data,
+  type = "prob"
+)
+
+# Generate ROC curve using the positive class probabilities
+roc_obj <- roc(
+  response = test_data$Attrition,
+  predictor = as.numeric(probs[,2]),
+  levels = rev(levels(test_data$Attrition))  # Ensure correct class order
+)
+
+# Plot ROC curve
+plot(
+  roc_obj,
+  main = "ROC Curve for Random Forest",
+  col = "#1c61b6",
+  lwd = 3
+)
+
+# Add diagonal reference line
+abline(a = 0, b = 1, lty = 2, col = "red")
+
+# Display AUC on the plot
+text(
+  x = 0.6,
+  y = 0.3,
+  labels = paste("AUC =", round(auc(roc_obj), 2)),
+  cex = 1.5,
+  col = "red"
+)
+
+# Print AUC value
+auc(roc_obj)
+
+
+```
+```{r mychunk21, warning=FALSE, message=FALSE}
+# ============================================================
+#         RANDOM FOREST MODEL PERFORMANCE SUMMARY
+# ============================================================
+
+# 1. Model Overview:
+# ------------------------------------------------------------
+# - Model: Random Forest
+# - Samples: 1177
+# - Predictors: 23
+# - Classes: Binary (X0 = Stayed, X1 = Left)
+# - Resampling: 10-fold Cross-Validation
+# - Final Model: mtry = 2 (number of variables randomly sampled at each split)
+
+# 2. ROC and Model Selection:
+# ------------------------------------------------------------
+# - The model was tuned using ROC (Receiver Operating Characteristic) as the primary metric.
+# - ROC values for different mtry parameters:
+#    - mtry = 2: ROC = 0.7734 (Optimal)
+#    - mtry = 12: ROC = 0.7576
+#    - mtry = 23: ROC = 0.7504
+# - The highest ROC was achieved at mtry = 2, making it the final model.
+
+# 3. Confusion Matrix Interpretation:
+# ------------------------------------------------------------
+# - Predicted vs. Actual:
+#    - True Negatives (TN, X0-X0): 246
+#    - False Negatives (FN, X1-X0): 42
+#    - True Positives (TP, X1-X1): 5
+#    - False Positives (FP, X0-X1): 0
+
+# 4. Performance Metrics:
+# ------------------------------------------------------------
+# - **Accuracy**: 85.67% – Overall, the model correctly predicted 85.67% of cases.
+# - **Kappa**: 0.1666 – Low agreement beyond chance, indicating imbalanced performance.
+# - **Sensitivity (Recall for Class X0)**: 100% – The model perfectly identified class X0 (Stayed).
+# - **Specificity (Recall for Class X1)**: 10.64% – Poor identification of class X1 (Left).
+# - **Positive Predictive Value (PPV)**: 85.42% – When the model predicted "Stayed," it was correct 85.42% of the time.
+# - **Negative Predictive Value (NPV)**: 100% – When predicting "Left," the model never misclassified.
+# - **Balanced Accuracy**: 55.32% – Average of sensitivity and specificity, indicating imbalanced performance.
+
+# 5. Key Observations:
+# ------------------------------------------------------------
+# - The model is highly sensitive but lacks specificity.
+# - It predicts class X0 (employees who stay) well but struggles to identify class X1 (employees who leave).
+# - This imbalance is reflected in the ROC curve (AUC = 0.84), showing a moderately performing model.
+# - Despite high accuracy, the low specificity (10.64%) suggests the model is biased toward predicting employees as "staying."
+```
+
+```{r mychunk22, warning=FALSE, message=FALSE}
+# ============================================================
+#               APPLYING SMOTE TO BALANCE DATA
+# ============================================================
+
+# Load the SMOTE-processed data frame
+df <- df_smote
+
+# Verify the structure and composition of the dataset
+glimpse(df)  # Use glimpse for a cleaner and more concise overview
+
+
+```
+
+
+```{r mychunk23, warning=FALSE, message=FALSE}
+
+# ============================================================
+#                  APPLYING SMOTE TO BALANCE DATA
+# ============================================================
+
+# Ensure the target variable 'Attrition' is treated as a factor
+df$Attrition <- as.factor(df$Attrition)
+
+# ------------------------------------------------------------
+# STEP 1: Separate Features (X) and Target (y)
+# ------------------------------------------------------------
+X <- df[, !names(df) %in% "Attrition"]  # All columns except 'Attrition'
+y <- df$Attrition                       # Target variable
+
+# ------------------------------------------------------------
+# STEP 2: Check Class Distribution Before SMOTE
+# ------------------------------------------------------------
+cat("\nClass Distribution Before SMOTE:\n")
+print(table(y))
+
+# ------------------------------------------------------------
+# STEP 3: Apply SMOTE to Balance the Dataset
+# ------------------------------------------------------------
+smote_result <- SMOTE(X, y, K = 5, dup_size = 2)  # Apply SMOTE with K-neighbors = 5
+
+# ------------------------------------------------------------
+# STEP 4: Convert SMOTE Results to Data Frame
+# ------------------------------------------------------------
+smote_data <- data.frame(smote_result$data)  # Convert SMOTE output to data frame
+
+# Map the synthetic data's class column to factor levels of 'Attrition'
+smote_data$Attrition <- factor(smote_data$class, levels = c(0, 1), labels = levels(y))
+
+# Drop the temporary 'class' column created by SMOTE
+smote_data$class <- NULL  
+
+# ------------------------------------------------------------
+# STEP 5: Check Class Distribution After SMOTE
+# ------------------------------------------------------------
+cat("\nClass Distribution After SMOTE:\n")
+print(table(smote_data$Attrition))
+
+# ------------------------------------------------------------
+# STEP 6: View the First Few Rows of SMOTE Data
+# ------------------------------------------------------------
+head(smote_data)
+
+
+```
+```{r mychunk24, warning=FALSE, message=FALSE}
+# ============================================================
+#        CLASS DISTRIBUTION PIE CHART (BEFORE & AFTER SMOTE)
+# ============================================================
+
+# ------------------------------------------------------------
+# STEP 1: Class Distribution Before SMOTE
+# ------------------------------------------------------------
+before_dist <- table(y)  # Get class distribution before SMOTE
+
+# Convert to data frame for plotting
+before_df <- data.frame(
+  Class = names(before_dist),
+  Count = as.numeric(before_dist)
+)
+
+# Plot pie chart for class distribution before SMOTE
+ggplot(before_df, aes(x = "", y = Count, fill = Class)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  labs(
+    title = "Class Distribution Before SMOTE",
+    fill = "Attrition"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold")
+  )
+
+# ------------------------------------------------------------
+# STEP 2: Class Distribution After SMOTE
+# ------------------------------------------------------------
+after_dist <- table(smote_data$Attrition)  # Class distribution after SMOTE
+
+# Convert to data frame for plotting
+after_df <- data.frame(
+  Class = names(after_dist),
+  Count = as.numeric(after_dist)
+)
+
+# Plot pie chart for class distribution after SMOTE
+ggplot(after_df, aes(x = "", y = Count, fill = Class)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  labs(
+    title = "Class Distribution After SMOTE",
+    fill = "Attrition"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold")
+  )
+
+```
+
+```{r mychunk25, warning=FALSE, message=FALSE}
+# ============================================================
+#       CLASS DISTRIBUTION EXPLANATION (BEFORE & AFTER SMOTE)
+# ============================================================
+
+# 1. Class Distribution Before SMOTE:
+# ------------------------------------------------------------
+# - The dataset was imbalanced with:
+#    - 1233 samples in class "0" (employees who stayed)
+#    - 237 samples in class "1" (employees who left)
+# - This imbalance causes the model to favor the majority class,
+#   reducing its ability to detect minority class (class "1") cases.
+# - Although accuracy may appear high, specificity (detecting class "1") is low.
+
+# 2. Class Distribution After SMOTE:
+# ------------------------------------------------------------
+# - SMOTE (Synthetic Minority Over-sampling Technique) rebalanced the data by:
+#    - Oversampling the minority class "1" from 237 to 711 samples.
+#    - Resulting in 1233 samples for class "0" and 711 for class "1."
+# - This improved distribution enhances the model's capacity to learn patterns
+#   from the minority class, boosting its predictive power for attrition.
+
+# 3. Benefits of SMOTE:
+# ------------------------------------------------------------
+# - SMOTE mitigates model bias towards the majority class.
+# - Enhances specificity, improving detection of employees likely to leave.
+# - Balanced datasets lead to more reliable predictions and better generalization.
+
+# 4. Key Observations:
+# ------------------------------------------------------------
+# - The dataset is not perfectly balanced post-SMOTE but shows significant improvement.
+# - This adjustment allows fairer model training and improves attrition prediction accuracy.
+```
+
+
+```{r mychunk26, warning=FALSE, message=FALSE}
+
+# ============================================================
+#        LOGISTIC REGRESSION ON SMOTE-BALANCED DATA
+# ============================================================
+
+# ------------------------------------------------------------
+# STEP 1: Prepare Features and Target from SMOTE Data
+# ------------------------------------------------------------
+features <- smote_data[, !names(smote_data) %in% "Attrition"]  # Extract features (X)
+target <- as.numeric(smote_data$Attrition) - 1                 # Convert target (y) to 0 and 1
+
+# Combine features and target for modeling
+logistic_data <- cbind(features, Attrition = target)
+
+# ------------------------------------------------------------
+# STEP 2: Fit Logistic Regression Model
+# ------------------------------------------------------------
+logistic_model <- glm(
+  Attrition ~ .,                     # Predict Attrition using all features
+  data = logistic_data,
+  family = binomial                  # Logistic regression (binomial link)
+)
+
+# Display model summary to review coefficients and significance
+summary(logistic_model)
+
+# ------------------------------------------------------------
+# STEP 3: Model Predictions and Evaluation
+# ------------------------------------------------------------
+# Predict probabilities on the training data
+predicted_probs <- predict(
+  logistic_model,
+  type = "response"
+)
+
+# Convert probabilities to binary class predictions using a threshold of 0.5
+predicted_classes <- ifelse(predicted_probs > 0.5, 1, 0)
+
+# Generate the confusion matrix
+confusion_matrix <- table(
+  Predicted = predicted_classes,
+  Actual = logistic_data$Attrition
+)
+
+# Print confusion matrix
+print(confusion_matrix)
+
+# ------------------------------------------------------------
+# STEP 4: Calculate and Display Model Accuracy
+# ------------------------------------------------------------
+accuracy <- mean(predicted_classes == logistic_data$Attrition)
+cat("\nLogistic Regression Model Accuracy:", round(accuracy * 100, 2), "%\n")
+
+# ============================================================
+#        CONFUSION MATRIX HEATMAP AND ROC CURVE PLOTTING
+# ============================================================
+
+
+# Generate the confusion matrix using caret
+library(caret)
+
+# Create confusion matrix from predictions
+conf_mat <- confusionMatrix(
+  factor(predicted_classes, levels = c(0, 1)),  # Predicted values as factor
+  factor(logistic_data$Attrition, levels = c(0, 1))  # Actual values as factor
+)
+
+# Convert the matrix to a data frame for visualization
+conf_matrix_df <- as.data.frame(conf_mat$table)
+colnames(conf_matrix_df) <- c("Predicted", "Actual", "Count")  # Rename columns for clarity
+
+# Plot the confusion matrix as a heatmap
+library(ggplot2)
+
+ggplot(conf_matrix_df, aes(x = Actual, y = Predicted, fill = Count)) +
+  geom_tile(color = "white") +  # White grid lines for separation
+  scale_fill_gradient(low = "#f7fbff", high = "#08306b") +  # Gradient from light to deep blue
+  geom_text(aes(label = Count), color = "black", size = 5) +  # Overlay counts
+  labs(
+    title = "Confusion Matrix Heatmap",
+    x = "Actual Class",
+    y = "Predicted Class",
+    fill = "Count"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),  # Center title
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14)
+  )
+
+
+# ------------------------------------------------------------
+# ROC CURVE AND AUC
+# ------------------------------------------------------------
+# Generate ROC curve from predicted probabilities
+roc_curve <- roc(
+  response = logistic_data$Attrition,
+  predictor = predicted_probs
+)
+
+# Plot ROC curve
+plot(
+  roc_curve,
+  col = "#1f77b4",  # Blue ROC curve
+  lwd = 3,
+  main = "ROC Curve for Logistic Regression (SMOTE)"
+)
+
+# Add diagonal reference line for random classifier
+abline(a = 0, b = 1, col = "red", lty = 2)
+
+# Display the AUC on the plot and in the console
+auc_value <- auc(roc_curve)
+text(
+  x = 0.6, y = 0.3,
+  labels = paste("AUC =", round(auc_value, 2)),
+  col = "red",
+  cex = 1.5
+)
+
+cat("AUC:", round(auc_value, 3), "\n")
+
+
+```
+
+```{r mychunk27, warning=FALSE, message=FALSE}
+
+
+# ============================================================
+#        LOGISTIC REGRESSION MODEL PERFORMANCE SUMMARY
+# ============================================================
+
+# 1. Model Overview:
+# ------------------------------------------------------------
+# - Model: Logistic Regression
+# - Balanced using SMOTE (Synthetic Minority Over-sampling Technique)
+# - Samples: 1944 (balanced dataset)
+# - Features: 23 predictors
+# - Null Deviance: 2553.1 (baseline deviance)
+# - Residual Deviance: 1939.0 (lower indicates improved model fit)
+# - AIC (Akaike Information Criterion): 1987 (lower AIC indicates better model performance)
+
+# 2. Key Performance Metrics:
+# ------------------------------------------------------------
+# - **Accuracy**: 76.39% – The model correctly predicted 76.39% of cases.
+# - **AUC (Area Under the Curve)**: 0.82 – Good model discrimination between classes.
+# - **Confusion Matrix**:
+#    - True Negatives (TN, 0-0): 1059
+#    - False Negatives (FN, 1-0): 285
+#    - True Positives (TP, 1-1): 426
+#    - False Positives (FP, 0-1): 174
+# - Sensitivity (Recall for Class 0, Stayed): High at identifying class 0.
+# - Specificity (Recall for Class 1, Left): Lower, indicating some misclassification of employees who leave.
+
+# 3. Significant Predictors of Attrition:
+# ------------------------------------------------------------
+# - **OverTime** (p < 0.001, Estimate = 1.71): Employees working overtime are significantly more likely to leave.
+# - **JobInvolvement** (p < 0.001, Estimate = -0.52): Lower job involvement increases attrition risk.
+# - **NumCompaniesWorked** (p < 0.001, Estimate = 0.16): Employees who worked at multiple companies are more likely to leave.
+# - **DistanceFromHome** (p < 0.001, Estimate = 0.04): Employees living farther from work are at higher risk of attrition.
+# - **Department** (p < 0.001, Estimate = 0.77): Certain departments have higher attrition rates.
+# - **MaritalStatus** (p < 0.001, Estimate = 0.46): Marital status influences attrition likelihood.
+# - **TrainingTimesLastYear** (p = 0.004, Estimate = -0.14): Employees with fewer training sessions show higher attrition.
+# - **StockOptionLevel** (p = 0.003, Estimate = -0.28): Lower stock option levels are linked to increased attrition.
+# - **JobLevel** (p = 0.04, Estimate = -0.38): Higher job levels reduce attrition risk.
+
+# 4. Non-Significant Predictors:
+# ------------------------------------------------------------
+# - Education, Performance Rating, Monthly Income, and Hourly Rate are not statistically significant predictors of attrition (p > 0.05).
+
+# 5. Observations from Confusion Matrix:
+# ------------------------------------------------------------
+# - **False Negatives (285 cases)** – The model misclassified some employees who left the company as staying.
+# - **False Positives (174 cases)** – The model incorrectly predicted some employees would leave.
+# - **True Positives (426 cases)** – The model successfully identified employees at risk of attrition.
+# - **True Negatives (1059 cases)** – Employees predicted to stay were correctly classified.
+
+```
+
+
+```{r mychunk28, warning=FALSE, message=FALSE}
+
+
+# ============================================================
+#        RANDOM FOREST MODEL TRAINING AND EVALUATION
+# ============================================================
+
+# ------------------------------------------------------------
+# STEP 1: Prepare Target Variable
+# ------------------------------------------------------------
+# Ensure the target variable 'Attrition' is a factor
+logistic_data$Attrition <- as.factor(logistic_data$Attrition)
+
+# ------------------------------------------------------------
+# STEP 2: Train the Random Forest Model
+# ------------------------------------------------------------
+set.seed(42)  # Ensure reproducibility
+rf_model <- randomForest(
+  Attrition ~ .,                   # Predict 'Attrition' using all features
+  data = logistic_data,            # Balanced data from SMOTE
+  ntree = 100,                     # Number of trees
+  mtry = 3,                        # Number of features tried at each split
+  importance = TRUE                # Measure variable importance
+)
+
+# Display model summary
+print(rf_model)
+
+# ------------------------------------------------------------
+# STEP 3: Visualize Model Performance
+# ------------------------------------------------------------
+# Plot error rate across trees
+plot(
+  rf_model,
+  main = "Random Forest Error Rate"
+)
+
+# Plot variable importance
+varImpPlot(
+  rf_model,
+  main = "Variable Importance"
+)
+
+# ------------------------------------------------------------
+# STEP 4: Generate Predictions
+# ------------------------------------------------------------
+# Predict class labels
+rf_predictions <- predict(
+  rf_model,
+  type = "response"
+)
+
+# Predict class probabilities (for ROC)
+rf_predicted_probs <- predict(
+  rf_model,
+  type = "prob"
+)[, 2]  # Extract probabilities for positive class (Attrition = 1)
+
+# ------------------------------------------------------------
+# STEP 5: Confusion Matrix and Accuracy
+# ------------------------------------------------------------
+rf_confusion_matrix <- table(
+  Predicted = rf_predictions,
+  Actual = logistic_data$Attrition
+)
+
+cat("Confusion Matrix:\n")
+print(rf_confusion_matrix)
+
+# Calculate accuracy
+rf_accuracy <- mean(rf_predictions == logistic_data$Attrition)
+cat("\nAccuracy of the Random Forest model:", round(rf_accuracy * 100, 2), "%\n")
+
+# ------------------------------------------------------------
+# STEP 6: ROC Curve and AUC
+# ------------------------------------------------------------
+rf_roc <- roc(
+  response = logistic_data$Attrition,
+  predictor = rf_predicted_probs
+)
+
+# Plot ROC curve
+plot(
+  rf_roc,
+  col = "darkgreen",
+  lwd = 2,
+  main = "ROC Curve for Random Forest"
+)
+
+# Add diagonal reference line (random classifier)
+abline(a = 0, b = 1, col = "red", lty = 2)
+
+# Print AUC value
+auc_value <- auc(rf_roc)
+cat("AUC for Random Forest:", round(auc_value, 3), "\n")
+
+
+# ============================================================
+#               CONFUSION MATRIX VISUALIZATION
+# ============================================================
+
+# Generate the confusion matrix from predictions
+rf_confusion_matrix <- table(
+  Predicted = rf_predictions,
+  Actual = logistic_data$Attrition
+)
+
+# Display confusion matrix
+cat("Confusion Matrix:\n")
+print(rf_confusion_matrix)
+
+# Convert to data frame for visualization
+conf_matrix_df <- as.data.frame(rf_confusion_matrix)
+colnames(conf_matrix_df) <- c("Predicted", "Actual", "Count")
+
+# Plot confusion matrix as a heatmap
+ggplot(conf_matrix_df, aes(x = Actual, y = Predicted, fill = Count)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Count), color = "black", size = 5) +
+  scale_fill_gradient(low = "white", high = "#1f77b4") +
+  labs(
+    title = "Confusion Matrix Heatmap",
+    x = "Actual Class",
+    y = "Predicted Class",
+    fill = "Count"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 14)
+  )
+
+
+
+```
+
+
+```{r mychunk29, warning=FALSE, message=FALSE}
+
+# ============================================================
+#       RANDOM FOREST MODEL SUMMARY (WITH SMOTE)
+# ============================================================
+
+# 1. Model Overview:
+# ------------------------------------------------------------
+# - **Model**: Random Forest (Classification)
+# - **Samples**: Balanced through SMOTE to address class imbalance.
+# - **Number of Trees (ntree)**: 100
+# - **Variables at Each Split (mtry)**: 3
+# - **Importance**: Enabled to identify top contributing features.
+
+# 2. Performance Metrics:
+# ------------------------------------------------------------
+# - **OOB Error Rate (Out-of-Bag)**: 10.75% – Reasonable performance.
+# - **Confusion Matrix**:
+#     - True Negatives (TN, 0-0): 1198
+#     - False Negatives (FN, 1-0): 174
+#     - True Positives (TP, 1-1): 537
+#     - False Positives (FP, 0-1): 35
+# - **Class Error**:
+#     - Class 0 (Stayed): 2.83%
+#     - Class 1 (Left): 24.47%
+
+# 3. Key Visualizations:
+# ------------------------------------------------------------
+# - **Error Rate Plot**: Shows how the error decreases with an increasing number of trees.
+# - **Variable Importance Plot**:
+#     - **Top Influencing Factors**: OverTime, MonthlyIncome, and StockOptionLevel.
+#     - OverTime appears as the most important predictor.
+# - **ROC Curve**:
+#     - **AUC**: High area under the curve indicates strong model performance.
+
+# 4. Observations and Recommendations:
+# ------------------------------------------------------------
+# - **Model Strengths**:
+#     - The model performs exceptionally well in predicting employees who stay (class 0).
+#     - High sensitivity but moderate specificity.
+# - **Areas for Improvement**:
+#     - **False Negatives (174 cases)** suggest the model misses some attrition cases.
+#     - Consider increasing mtry or adjusting class weights to improve minority class detection.
+# - **Action 
+
+```
+
+## Project Summary: Employee Attrition Prediction
+
+### 1. Overview
+Goal: Predict employee attrition with machine learning models.  
+Models Evaluated:  
+1. Logistic Regression (No SMOTE)  
+2. Random Forest (No SMOTE)  
+3. Logistic Regression (SMOTE)  
+4. Random Forest (SMOTE)
+
+### 2. Key Factors Influencing Attrition
+1. OverTime
+2. Job Involvement
+3. NumCompaniesWorked
+4. DistanceFromHome
+5. MaritalStatus
+6. StockOptionLevel
+7. JobLevel
+8. TrainingTimesLastYear
+
+### 3. Model Comparison & Performance
+- **Logistic Regression (No SMOTE)**: Accuracy = 84.98%, AUC = 0.83
+- **Random Forest (No SMOTE)**: Accuracy = 85.67%, AUC = 0.84
+- **Logistic Regression (SMOTE)**: Accuracy = 76.39%, AUC = 0.82
+- **Random Forest (SMOTE)**: Accuracy = 89.25%, AUC = 0.87 (Best Performance)
+
+### 4. Best Model
+**Random Forest (With SMOTE)**  
+- Accuracy = 89.25%, AUC = 0.87
+- Handles class imbalance effectively
+- High recall & precision for both classes
+
+
+### 5. Thank You
+We appreciate your time reading through our Employee Attrition Prediction summary. We hope this guide helps you understand the key drivers of employee turnover and the potential of machine learning in solving attrition challenges.
+Feel free to explore the Random Forest (With SMOTE) model results more deeply, or experiment with additional features and other algorithms. With the insights gained from this analysis, you can better strategize on employee retention and foster a more engaged workforce.
+
+Thank you for viewing this report to the end. We look forward to any feedback, questions, or further collaborations!
