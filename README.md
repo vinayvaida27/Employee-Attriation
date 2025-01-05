@@ -4,9 +4,7 @@
 
 The **Employee-Attrition** project aims to predict employee turnover using machine learning models. By identifying key factors influencing attrition, it helps businesses proactively manage employee retention. Models evaluated include Logistic Regression and Random Forest, with and without SMOTE for handling class imbalance.
 
-## Model Summary
 
-The best performing model for predicting employee attrition was **Random Forest (With SMOTE)**, achieving an accuracy of 89.25% and an AUC of 0.87. This model effectively handles class imbalance and provides excellent recall and precision for both "stay" and "leave" classes, making it the best candidate for real-world deployment.
 
 ## Problem Statement
 
@@ -37,6 +35,14 @@ The dataset used in this project includes various employee attributes such as ag
 ![image](https://github.com/user-attachments/assets/6d9bfeb3-bb82-4d2f-bd72-c0f078a32b7e)
 ![image](https://github.com/user-attachments/assets/fb12f6da-90b1-45e7-8cb9-b286d6fc67e5)
 
+
+## Model Comparison & Performance
+Logistic Regression (No SMOTE): Accuracy = 84.98%, AUC = 0.83
+Random Forest (No SMOTE): Accuracy = 85.67%, AUC = 0.84
+Logistic Regression (SMOTE): Accuracy = 76.39%, AUC = 0.82
+Random Forest (SMOTE): Accuracy = 89.25%, AUC = 0.87 (Best Performance)
+
+The best performing model for predicting employee attrition was **Random Forest (With SMOTE)**, achieving an accuracy of 89.25% and an AUC of 0.87. This model effectively handles class imbalance and provides excellent recall and precision for both "stay" and "leave" classes, making it the best candidate for real-world deployment.
 
 
 ## Installation
