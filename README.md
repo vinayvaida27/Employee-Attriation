@@ -37,12 +37,12 @@ The dataset used in this project includes various employee attributes such as ag
 
 
 ## Model Comparison & Performance
-Logistic Regression (No SMOTE): Accuracy = 84.98%, AUC = 0.83
-Random Forest (No SMOTE): Accuracy = 85.67%, AUC = 0.84
-Logistic Regression (SMOTE): Accuracy = 76.39%, AUC = 0.82
-Random Forest (SMOTE): Accuracy = 89.25%, AUC = 0.87 (Best Performance)
+- Logistic Regression (No SMOTE): Accuracy = 84.98%, AUC = 0.83
+- Random Forest (No SMOTE): Accuracy = 85.67%, AUC = 0.84
+- Logistic Regression (SMOTE): Accuracy = 76.39%, AUC = 0.82
+- Random Forest (SMOTE): Accuracy = 89.25%, AUC = 0.87 (Best Performance)
 
-The best performing model for predicting employee attrition was **Random Forest (With SMOTE)**, achieving an accuracy of 89.25% and an AUC of 0.87. This model effectively handles class imbalance and provides excellent recall and precision for both "stay" and "leave" classes, making it the best candidate for real-world deployment.
+- The best performing model for predicting employee attrition was **Random Forest (With SMOTE)**, achieving an accuracy of 89.25% and an AUC of 0.87. This model effectively handles class imbalance and provides excellent recall and precision for both "stay" and "leave" classes, making it the best candidate for real-world deployment.
 
 
 ## Installation
